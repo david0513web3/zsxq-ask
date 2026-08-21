@@ -44,6 +44,11 @@ echo "→ 2/4 解密"
 openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:"$PASS" -in "$ENC" -out zsxq_ask.zip 2>/dev/null || {
   echo "❌ 解密失败：密码不对，或 openssl 版本过旧（需支持 -pbkdf2）"; exit 1; }
 
+# 新机器可能装了 Claude Code 但还没有 skills 目录，自动补上
+if [ ! -d "$HOME/.claude/skills" ] && { [ -d "$HOME/.claude" ] || command -v claude >/dev/null 2>&1; }; then
+  mkdir -p "$HOME/.claude/skills"
+  echo "   (已创建 ~/.claude/skills)"
+fi
 echo "→ 3/4 部署到本机所有 AI 客户端"
 rm -rf unpack && mkdir unpack && unzip -o -q zsxq_ask.zip -d unpack/
 installed=0
