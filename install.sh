@@ -32,12 +32,26 @@ elif [ -f "$OLDPWD/$ENC" ]; then
   cp "$OLDPWD/$ENC" "$WORK/$ENC"
   echo "   ✓ 使用本地加密包 $OLDPWD/$ENC"
 else
-  if ! curl -fsSL -o "$ENC" "$BASE_GH/$ENC"; then
-    echo "   (GitHub 直连失败，切换 CDN)"
-    curl -fsSL -o "$ENC" "$BASE_CDN/$ENC" || {
-      echo "❌ 下载失败。若仓库是私有的，请向发送者要 $ENC 文件，和 install.sh 放同一个文件夹后重跑"; exit 1; }
+  # 国内直连 raw.githubusercontent 常被墙，依次试多条线路
+  ok=0
+  for url in \
+    "$BASE_GH/$ENC" \
+    "$BASE_CDN/$ENC" \
+    "https://ghfast.top/https://raw.githubusercontent.com/$REPO/$BRANCH/$ENC" \
+    "https://gh-proxy.com/https://raw.githubusercontent.com/$REPO/$BRANCH/$ENC" \
+    "https://ghproxy.net/https://raw.githubusercontent.com/$REPO/$BRANCH/$ENC"
+  do
+    if curl -fsSL --max-time 60 -o "$ENC" "$url" && [ -s "$ENC" ]; then
+      echo "   ✓ 已下载（线路：${url%%/$ENC}）"; ok=1; break
+    fi
+    echo "   线路不通，换下一条…"
+  done
+  if [ "$ok" != "1" ]; then
+    echo "❌ 所有线路都下载失败（网络连不上 GitHub）。"
+    echo "   解决办法：向发送者要 install.sh 和 $ENC 两个文件，放同一个文件夹后跑："
+    echo "   PASS=<密码> bash install.sh"
+    exit 1
   fi
-  echo "   ✓ 已下载"
 fi
 
 echo "→ 2/4 解密"
